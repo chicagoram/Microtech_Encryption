@@ -1,0 +1,277 @@
+package com.directory;
+
+import java.io.File;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+
+import com.directory.arch.AbstractResourceWatcher;
+import com.directory.impl.FileListener;
+import com.directory.util.JavaMailer;
+import com.directory.util.Util;
+import org.apache.commons.lang3.exception.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class DirectoryWatcher extends AbstractResourceWatcher {
+
+	
+
+	static {
+		pattern = Pattern.compile(Util.EXTENTION_PATTERN);
+	}
+
+	private static Pattern pattern;
+
+	private Matcher matcher;
+
+	/**
+	 * Logger instance
+	 * 
+	 * 
+	 */
+
+	/** The Constant logger. */
+
+	private static final Logger debugLogger = Logger.getLogger("debuglog");
+	private static final Logger errorLogger = Logger.getLogger("errorlog");
+
+	/**
+	 * The current map of files and their timestamps (String fileName => Long
+	 * lastMod)
+	 */
+	private Map<String, Long> currentFiles = new ConcurrentHashMap<String, Long>();
+
+	/**
+	 * The directory to watch.
+	 */
+	private String directory;
+
+	/**
+	 * The map of last recorded files and their timestamps (String fileName =>
+	 * Long lastMod)
+	 */
+	// private Map<String, Long> prevFiles = new HashMap<String, Long>();
+
+	/**
+	 * Constructor that takes the directory to watch.
+	 * 
+	 * @param directoryPath
+	 *            the directory to watch
+	 * @param intervalSeconds
+	 *            The interval to use when monitoring this directory. I.e., ever
+	 *            x seconds, check this directory to see what has changed.
+	 * @throws IllegalArgumentException
+	 *             if the argument does not map to a valid directory
+	 */
+	public DirectoryWatcher(String directoryPath, int intervalSeconds) {
+
+		// Get the common thread interval stuff set up.
+		super(intervalSeconds, directoryPath + " interval watcher.");
+
+		// Check that it is indeed a directory.
+		/*
+		 * File theDirectory = new File(directoryPath);
+		 * 
+		 * if (theDirectory != null && !theDirectory.isDirectory()) {
+		 * 
+		 * // This is bad, so let the caller know String message = "The path " +
+		 * directory + " does not represent a valid directory."; throw new
+		 * IllegalArgumentException(message);
+		 * 
+		 * }
+		 */
+		// Else all is well so set this directory and the interval
+		this.directory = directoryPath;
+
+	}
+
+	/**
+	 * For testing only.
+	 * 
+	 * @param args
+	 */
+	public static void main(String[] args) throws Exception {
+
+		// log4j conf
+
+		PropertyConfigurator.configure("log4j.properties");
+
+		// Monitor WATCH_DIR every 30 seconds
+		if (args == null || args.length == 0 || args[0] == null
+				|| args[1] == null || args[2] == null || args[3] == null
+				|| args[4] == null || args[5] == null || args[6] == null
+				|| args[7] == null || args[8] == null) {
+			debugLogger
+					.debug("Please set the environment before starting the application System exiting...");
+			errorLogger
+					.error("Please set the environment before starting the application");
+			System.exit(0);
+		}
+		Util.setupEnv(args[0], args[1], new Integer(args[2]).intValue(),
+				new Integer(args[3]).intValue(), args[4], args[5], new Integer(
+						args[6]).intValue(), new Long(args[7]).longValue(), args[8]);
+
+		DirectoryWatcher dw = new DirectoryWatcher(Util.getWatchDir(),
+				Util.getdelayBetweenIteration());
+		dw.addListener(new FileListener());
+		dw.start();
+
+	}
+
+	/**
+	 * Start the monitoring of this directory.
+	 */
+	@Override
+	public void start() throws Exception {
+
+		// Since we're going to start monitoring, we want to take a snapshot of
+		// the
+		// current directory to we have something to refer to when stuff
+		// changes.
+		debugLogger.debug("Taking a snapshot of directory");
+		takeSnapshot();
+
+		// And start the thread on the given interval
+		super.start();
+
+		// And notify the listeners that monitoring has started
+		File theDirectory = new File(directory);
+		monitoringStarted(theDirectory);
+	}
+
+	/**
+	 * Stop the monitoring of this directory.
+	 */
+	@Override
+	public void stop() throws Exception {
+
+		// And start the thread on the given interval
+		super.stop();
+
+		// And notify the listeners that monitoring has started
+		File theDirectory = new File(directory);
+		monitoringStopped(theDirectory);
+	}
+
+	/**
+	 * Store the file names and the last modified timestamps of all the files
+	 * and directories that exist in the directory at this moment.
+	 */
+	private synchronized void takeSnapshot() {
+
+		debugLogger.debug("Clearing folder container");
+		currentFiles.clear();
+
+		File theDirectory = new File(directory);
+		File[] children = theDirectory.listFiles();
+
+		// if children empty set
+
+		if (children == null || children.length == 0) {
+			children = null;
+			theDirectory = null;
+		} else {
+			// Store all the current files and their timestamps
+			for (int i = 0; i < children.length; i++) {
+
+				boolean isGrowing = false;
+				Long initialWeight = new Long(0);
+				Long finalWeight = new Long(0);
+				int loopcnt = 0;
+
+				do {
+					initialWeight = children[i].getAbsoluteFile().length();
+					try {
+						Thread.sleep(1000);
+					} catch (Exception e) {
+						errorLogger.error("Too long a wait Error is "
+								+ e.getMessage());
+					}
+					finalWeight = children[i].getAbsoluteFile().length();
+					loopcnt += loopcnt;
+					if (loopcnt > 60) {
+						errorLogger
+								.error("LOC001:- File downloading takes longer than expected Loopcnt  ="
+										+ loopcnt);
+					}
+					isGrowing = initialWeight < finalWeight;
+
+				} while (isGrowing);
+
+				debugLogger.debug("Finished creating file " + children[i]);
+
+				File file = children[i];
+				if (file != null && !file.isDirectory()) {
+					String fileNameWithOutExt = new File(file.getName())
+							.getName().replaceFirst("[.][^.]+$", "");
+					if (!(fileNameWithOutExt.equalsIgnoreCase(Util
+							.getIgnoreFiles()))) {
+
+						matcher = pattern.matcher(file.getName());
+						if (matcher.matches()) {
+							currentFiles.put(file.getAbsolutePath(), new Long(
+									file.lastModified()));
+
+						}
+					}
+				}
+			}
+		}
+
+	}
+
+	/**
+	 * Check this directory for any changes and fire the proper events.
+	 */
+	@Override
+	protected void doInterval() throws Exception {
+
+		// Take a snapshot of the current state of the dir for comparisons
+
+		// Thread starting
+
+	    debugLogger.debug("Listener invocation ..."
+				+ Thread.currentThread().getName());
+
+		Iterator<String> currentIt = null;
+		String fileName = null;
+
+		try {
+
+			takeSnapshot();
+
+			// Iterate through the map of current files and compare
+			// them for differences etc...
+
+			if (currentFiles != null && currentFiles.keySet().size() > 0) {
+				currentIt = currentFiles.keySet().iterator();
+
+				while (currentIt.hasNext()) {
+
+					fileName = currentIt.next();
+
+					resourceAdded(new File(fileName));
+
+				}
+			}
+		} catch (Exception e) {
+			errorLogger
+					.error("LOC002:- Error processing the file due to the reason ........."
+							+ e.getMessage() + " " + "\n" + ExceptionUtils.getStackTrace(e));
+			JavaMailer.sendFromGMail(Util.getMailfrom(), Util.getMailpass(),
+					Util.getMailto(),
+					"Print Server Failure - Printer   - " + Util.getPrinterName() + " "
+							, e.getMessage());
+
+			throw e;
+		} finally {
+			currentIt = null;
+		}
+	}
+
+}

@@ -1,0 +1,110 @@
+// File:         [OracleDAOFactory.java]
+// Created:      [Dec 16, 2009 creation date]
+// Last Changed: [Dec 16, 2009 date last changed]
+// Author:       [Ram]
+//
+// This code is copyright (c) 2009 Allied Vaughn
+// 
+// History:
+// 
+//
+package com.directory.arch.dataaccess;
+
+import java.sql.Connection;
+
+import java.sql.DriverManager;
+
+import org.apache.log4j.Logger;
+
+import com.directory.util.Util;
+
+// TODO: Auto-generated Javadoc
+/**
+ * A factory for creating HSQLDAO objects.
+ */
+
+/**
+ * @author babaram @
+ */
+public class HSQLDAOFactory extends DAOFactory {
+
+	/** The Constant logger. */
+	private static final Logger logger = Logger.getLogger("dataaccess");
+
+	/**
+	 * Instantiates a new oracle dao factory.
+	 */
+	public HSQLDAOFactory() {
+	}
+
+	/**
+	 * Close connection.
+	 * 
+	 * @param conn
+	 *            the conn
+	 * @throws UnRecoverableException
+	 */
+	public void closeConnection(Connection conn) throws Exception {
+
+		HSQLDAOFactory.logger
+				.debug("OracleDAOFactory:closeConnection() close DB connection ");
+		try {
+			conn.close();
+
+		} catch (final Exception e) {
+			HSQLDAOFactory.logger
+					.error("OracleDAOFactory:closeConnection() closing database connection error "
+							+ e.getMessage());
+			throw new Exception("Error closing connection Error is "
+					+ e.getMessage());
+		}
+	}
+
+	/** Uses DriverManager. */
+	public static Connection getConnection() throws Exception {
+		Connection result = null;
+		try {
+			String driverName = "oracle.jdbc.driver.OracleDriver";
+			Class.forName(driverName);
+
+			result = DriverManager.getConnection(
+					Util.getProperty("DB_DRIVER_URL"), Util.getDbUser(),
+					Util.getDbPassword());
+		} catch (Exception e) {
+			HSQLDAOFactory.logger
+					.error("OracleDAOFactory:getConnection() db connection obtaining  error "
+							+ e.getMessage());
+			throw new Exception(
+					"Database connection not available  - Error is "
+							+ e.getMessage());
+		}
+		return result;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.mod.bos.common.dataaccess.DAOFactory#getOrderDAO()
+	 */
+
+	/*
+	 * public OrderDAO getOrderDAO() { return new OrderDAOImpl(); }
+	 */
+
+	public static void main(String[] args) throws Exception{
+
+		Connection conn = null;
+		try {
+			Class.forName("org.hsqldb.jdbcDriver");
+			conn = DriverManager.getConnection("jdbc:hsqldb:file:c:\\pgms\\hsqldb\\hsqldb\\avdb",
+                        // filenames
+                    "sa",                     // username
+                    "");            
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		System.out.println(conn.getSchema());
+	}
+
+}

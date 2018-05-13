@@ -1,0 +1,609 @@
+package com.directory.util;
+
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.FilenameFilter;
+import java.io.InputStream;
+import java.io.Writer;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Hashtable;
+import org.apache.log4j.Logger;
+
+
+
+public class Util {
+
+	/** The Constant APPLICATION_PROPERTIES_FILE. */
+	public static final String APPLICATION_PROPERTIES_FILE = "ApplicationProperties.xml";
+	/** The Application property table. */
+	private static Hashtable<String, String> ApplicationPropertyTable = null;
+	private static final Logger debugLogger = Logger.getLogger("debuglog");
+	private static final Logger errorLogger = Logger.getLogger("errorlog");
+	private static final String mailfrom = "alliedvaughn.it";
+	private static final String mailpass = "seD3nv3r1";
+    private static final String[] mailTo  = {"ram_1726@yahoo.com", "mark.duranty@alliedvaughn.com"};
+    private static final String db_user = "avuser";
+    private static final String db_password = "avuser";
+    public static final String ADD_RESOURCE_ERROR = "Unable to add the resource";
+	public static final String FILE_MOVE_ERROR = "Unable to move the file";
+	public static final String FILE_OR_NETWORK_NOT_FOUND = "File not found or Network not accessible";
+	public static String getDbUser() {
+		return db_user;
+	}
+
+	public static String getDbPassword() {
+		return db_password;
+	}
+
+	public static String getMailfrom() {
+		return mailfrom;
+	}
+
+	public static String getMailpass() {
+		return mailpass;
+	}
+
+
+	private static String watchDir = null;
+	private static String processDest = null;
+	private static int delayBetweenIteration = 0;
+	private static int hotfolderBsyChkIntvl = 0;
+	private static String hotFolder = null;
+	private static String cfgFolder = null;
+	public static volatile int totRecords = 0;
+	private static String ignoreFiles = "tst-cnnct";
+	private static int iteration = 0;
+	public static final String EXTENTION_PATTERN = "([^\\s]+(\\.(?i)(txt))$)";
+	private static int hot_folder_wait_cnt = 0;
+	private static long sleepInterval = 0;
+	private static String printerName = "";
+	public static String getPrinterName() {
+		return printerName;
+	}
+
+	public static void setPrinterName(String printerName) {
+		Util.printerName = printerName;
+	}
+
+	public static long getSleepInterval() {
+		return sleepInterval;
+	}
+
+	public static String[] getMailto() {
+		return mailTo;
+	}
+	public static void setSleepInterval(int sleepInterval) {
+		Util.sleepInterval = sleepInterval;
+	}
+
+	public static int getIteration() {
+		return iteration;
+	}
+
+	public static void setIteration(int iterCount) {
+		iteration = iteration + iterCount;
+	}
+
+	/** The Constant logger. */
+	/*
+	 * private static final Logger logger = Logger .getLogger(Util.class);
+	 */
+	public static int getTotRecords() {
+		return totRecords;
+	}
+
+	public static void setTotRecords(int records) {
+		totRecords = records;
+	}
+
+	public static String getIgnoreFiles() {
+		return ignoreFiles;
+	}
+
+	public static void setIgnoreFiles(String ignoreFiles) {
+		Util.ignoreFiles = ignoreFiles;
+	}
+
+	public static void setupEnv(String watch, String processedDest, int delay,
+			int wait, String hotfolder, String cfgfolder,
+			int hot_folder_wait_counter, long sleeptime, String printer) {
+
+		watchDir = watch;
+		processDest = processedDest;
+		delayBetweenIteration = delay;
+		hotfolderBsyChkIntvl = wait;
+		hotFolder = hotfolder;
+		cfgFolder = cfgfolder;
+		hot_folder_wait_cnt = hot_folder_wait_counter;
+		sleepInterval = sleeptime;
+		printerName   = printer;
+
+	}
+
+	public static int getHot_folder_wait_cnt() {
+	return hot_folder_wait_cnt;
+	}
+
+	public static void setHot_folder_wait_cnt(int hot_folder_wait_cnt) {
+		Util.hot_folder_wait_cnt = hot_folder_wait_cnt;
+	}
+
+	public static Hashtable<String, String> getApplicationPropertyTable() {
+		return ApplicationPropertyTable;
+	}
+
+	public static void setApplicationPropertyTable(
+			Hashtable<String, String> applicationPropertyTable) {
+		ApplicationPropertyTable = applicationPropertyTable;
+	}
+
+	public static int gethotfolderBsyChkIntvl() {
+		return hotfolderBsyChkIntvl;
+	}
+
+	public static void sethotfolderBsyChkIntvl(int waittime) {
+		Util.hotfolderBsyChkIntvl = waittime;
+	}
+
+	public static String getHotFolder() {
+		return hotFolder;
+	}
+
+	public static void setHotFolder(String hotFolder) {
+		Util.hotFolder = hotFolder;
+	}
+
+	public static String getCfgFolder() {
+		return cfgFolder;
+	}
+
+	public static void setCfgFolder(String cfgFolder) {
+		Util.cfgFolder = cfgFolder;
+	}
+
+	public static String getApplicationPropertiesFile() {
+		return APPLICATION_PROPERTIES_FILE;
+	}
+
+	public static String getExtentionPattern() {
+		return EXTENTION_PATTERN;
+	}
+
+	public static String getWatchDir() {
+		return watchDir;
+	}
+
+	public static void setWatchDir(String watchDir) {
+		Util.watchDir = watchDir;
+	}
+
+	public static int getdelayBetweenIteration() {
+		return delayBetweenIteration;
+	}
+
+	public static void setdelayBetweenIteration(int timeDelay) {
+		Util.delayBetweenIteration = timeDelay;
+	}
+
+	public static String getProcessDest() {
+		return processDest;
+	}
+
+	public static void setProcessDest(String processDest) {
+		Util.processDest = processDest;
+	}
+
+	public static String extractFileName(String filePathName) {
+		if (filePathName == null)
+			return null;
+
+		int slashPos = filePathName.lastIndexOf('\\');
+
+		if (slashPos == -1)
+			return filePathName;
+
+		return filePathName.substring(slashPos + 1, filePathName.length());
+	}
+
+	/* public static void main(String[] args) throws Exception {
+
+		String target = null;
+		File sourceFile = null;
+
+		String newConfig = "D:/41056" + File.separator + "folder.cfg";
+		File batchfile = new File("D:/41056/pjm-13053159518-000033.txt");
+		System.out.println(batchfile.exists());
+		Path fr = Paths.get("D:/41056/pjm-13053159518-000033.txt");
+		String batchWithOutExt = batchfile.getName().replaceFirst("[.][^.]+$",
+				"");
+
+		String newloc = moveFiletoNewDestination(fr, "d:/inprocess_41056");
+		// inProcessFile = moveFiletoNewDestination(fr,
+		// Util.getInProcessDest());
+
+		try (BufferedReader fs = new BufferedReader(new FileReader(new File(
+				newloc)));) {
+
+			String c;
+			String[] tokens = null;
+			while ((c = fs.readLine()) != null) {
+
+				tokens = c.split(",");
+
+				String fileName = Util.extractFileName(tokens[0]);
+				target = tokens[1] + "\\" + fileName;
+
+				sourceFile = new File(tokens[0]);
+
+				if (sourceFile != null
+						&& (sourceFile.isFile() && sourceFile.canRead())) {
+					File targetFile = new File(target);
+					if (targetFile.exists()) {
+						System.out.println("LOC005:- target " + targetFile
+								+ " exists");
+						continue;
+
+					} else {
+						Util.setTotRecords(1);
+					}
+
+					// check if hot folder is busy before sending
+
+					System.out.println("Parent is " + targetFile.getParent());
+					if (isHotFolderNotBusy(targetFile.getParent())) {
+						// get cfg file over to hot folder
+
+						String fileNameWithOutExt = new File(tokens[0])
+								.getName().replaceFirst("[.][^.]+$", "");
+
+						System.out.println("File Name without extension is "
+								+ fileNameWithOutExt);
+						String cfg = fileNameWithOutExt + ".cfg";
+						// File hotFolderCfg = new File(Util.getWatchDir()+
+						// File.separator + cfg);
+						File hotFolderCfg;
+						if (fileNameWithOutExt.contains("SEP")) {
+							hotFolderCfg = new File("D:/41056" + File.separator
+									+ cfg);
+						} else {
+							hotFolderCfg = new File("D:/41056" + File.separator
+									+ batchWithOutExt + "-" + cfg);
+						}
+						hotFolderCfg.renameTo(new File(newConfig));
+						Path filepath = Paths.get(newConfig);
+						// moveFiletoNewDestination(filepath,Util.getCfgFolder());
+
+						moveFiletoNewDestination(filepath,
+								"D:/JimTest/[_EFI_HotFolder_]/");
+
+						// Now send Content File
+						if (tokens[0].contains("SEP")) {
+							moveFiletoNewDestination(new File(tokens[0]),
+									"D:/JimTest");
+						} else {
+							sendFileToHotFolder(fr, tokens[0], targetFile);
+						}
+						// send corresponding cfg
+
+					}
+				} else {
+					System.out.println("LOC007:- Source File does not exist "
+							+ sourceFile + " File processing error");
+
+				}
+			}
+
+		} catch (Exception e) {
+			System.out.println("LOC008:- File processing error "
+					+ ExceptionUtils.getStackTrace(e) + " ");
+			throw e;
+		}
+
+		moveFiletoNewDestination(new File(newloc), "D:\\processed_41056");
+
+	}
+*/
+	private static void sendFileToHotFolder(Path batchName, String fileName,
+			File targetFile) throws Exception {
+
+		try (InputStream istream = new FileInputStream(new File(fileName));
+				WritableByteChannel channel = new FileOutputStream(targetFile)
+						.getChannel()) {
+
+			ReadableByteChannel source = Channels.newChannel(istream);
+
+			ByteBuffer buffer = ByteBuffer.allocateDirect(102400);
+
+			while (source.read(buffer) != -1) {
+				buffer.flip();
+				while (buffer.hasRemaining()) {
+					channel.write(buffer);
+				}
+				buffer.clear();
+			}
+
+		} catch (Exception e) {
+			System.out.println("LOC006:- Error processing file "
+					+ e.getMessage() + " File processing error - Batch Name"
+					+ batchName.getFileName());
+			throw e;
+
+		}
+	}
+
+	/* private static boolean isHotFolderNotBusy(String folder) {
+		boolean hotFolderBusyChk = false;
+		boolean keepwaiting = true;
+		int iteration = 0;
+
+		int i = 0;
+		do {
+
+			try {
+
+				System.out.println("iterating ..." + ++i);
+				hotFolderBusyChk = checkIfFilesExistInHotfolder(folder, "ext");
+				System.out.println("hotFolderNotBusy ..." + hotFolderBusyChk);
+
+				if (hotFolderBusyChk) {
+					keepwaiting = true;
+				} else {
+					keepwaiting = false;
+					hotFolderBusyChk = true;
+				}
+				if (keepwaiting) {
+					iteration++;
+					if (iteration > 10) {
+						keepwaiting = false;
+						return true;
+					} else {
+						Thread.sleep(Util.getWaittime());
+					}
+				}
+			} catch (Exception e) {
+
+				keepwaiting = false;
+				System.out.println("Timing out ...too long a wait"
+						+ e.getMessage());
+			}
+
+		} while (keepwaiting);
+
+		return hotFolderBusyChk;
+
+	}
+*/
+	public static boolean checkIfFilesExistInHotfolder(String folder, String ext) {
+
+		boolean filesExistChk = false;
+
+		GenericExtFilter filter = new Util().new GenericExtFilter(ext);
+
+		File dir = new File(folder);
+
+		if (dir.isDirectory() == false) {
+
+			return filesExistChk;
+
+		}
+
+		// list out all the file name and filter by the extension
+		String[] list = dir.list(filter);
+
+		if (list == null || list.length == 0) {
+
+			return filesExistChk;
+		} else {
+
+			return !filesExistChk;
+		}
+
+	}
+
+	// inner class, generic extension filter
+
+	public static File moveFiletoNewDestination(File afile, String dest)
+			throws Exception {
+
+		System.out.println("Moving file" + afile.getName() + "to destination "
+				+ dest);
+
+		File bfile = new File(dest + "\\" + afile.getName());
+
+		FileReader fr = new FileReader(afile);
+
+		BufferedReader br = new BufferedReader(fr);
+		StringBuilder contents = new StringBuilder();
+		String line;
+		while ((line = br.readLine()) != null) {
+			contents.append(line);
+			contents.append(System.getProperty("line.separator"));
+		}
+
+		// use buffering
+		Writer output = new BufferedWriter(new FileWriter(bfile));
+
+		// FileWriter always assumes default encoding is OK!
+		output.write(contents.toString());
+
+		br.close();
+		output.close();
+
+		// delete the original file
+		afile.delete();
+
+		System.out
+				.println("File moved successfully and deleted from source folder!");
+
+		return bfile;
+
+	}
+
+	/**
+	 * Gets the property.
+	 * 
+	 * @param propertyName
+	 *            the property name
+	 * 
+	 * @return the property
+	 * 
+	 * @throws UnRecoverableException
+	 *             the un recoverable exception
+	 */
+	public static String getProperty(String propertyName) throws Exception {
+		String propertyValue = "";
+		try {
+			if (Util.ApplicationPropertyTable == null) {
+				Util.ApplicationPropertyTable = ApplicationPropertyDigester
+						.getProperties(Util.APPLICATION_PROPERTIES_FILE);
+
+			}
+			propertyValue = Util.ApplicationPropertyTable.get(propertyName);
+		} catch (final Exception e) {
+			throw new Exception(" Error getting property values"
+					+ e.getMessage());
+		}
+
+		return propertyValue;
+	}
+
+	public static void main2(String[] args) throws Exception {
+
+		String inProcessFile = null;
+		String target = null;
+		File sourceFile = null;
+		Path fr = Paths.get("d:/41056/test.txt");
+
+		// move the file to in process folder
+
+		inProcessFile = moveFiletoNewDestination(fr, "d:/inprocess_41056");
+
+		try (
+
+		BufferedReader fs = new BufferedReader(new FileReader(inProcessFile));) {
+
+			String c;
+			String[] tokens = null;
+			while ((c = fs.readLine()) != null) {
+
+				tokens = c.split(",");
+
+				String file = Util.extractFileName(tokens[0]);
+				target = tokens[1] + "\\" + file;
+
+				sourceFile = new File(tokens[0]);
+
+				if (sourceFile != null
+						&& (sourceFile.isFile() && sourceFile.canRead())) {
+					File targetFile = new File(target);
+					if (targetFile.exists()) {
+						System.out.println("target exists");
+						continue;
+
+					} else {
+						Util.setTotRecords(1);
+					}
+					try (InputStream istream = new FileInputStream(new File(
+							tokens[0]));
+							WritableByteChannel channel = new FileOutputStream(
+									targetFile).getChannel()) {
+
+						ReadableByteChannel source = Channels
+								.newChannel(istream);
+
+						ByteBuffer buffer = ByteBuffer.allocateDirect(102400);
+
+						while (source.read(buffer) != -1) {
+							buffer.flip();
+							while (buffer.hasRemaining()) {
+								channel.write(buffer);
+							}
+							buffer.clear();
+						}
+
+					} catch (Exception e) {
+						throw e;
+					}
+				} else {
+					System.out.println("Source file does not exist");
+				}
+			}
+
+		} catch (Exception e) {
+
+			throw e;
+		}
+		moveFiletoNewDestination(Paths.get(inProcessFile), "d:/processed_41056");
+
+	}
+
+	public static String moveFiletoNewDestination(Path afile, String dest)
+			throws Exception {
+
+		String filename = afile.getFileName().toString();
+		Path target = FileSystems.getDefault().getPath(dest, filename);
+		Files.move(afile, target, REPLACE_EXISTING);
+
+		return target.toString();
+	}
+	
+	public static void sleepforawhile(){
+
+	    //do something
+
+	    //sleep for 3000ms (approx)     
+	    long timeToSleep = Util.getSleepInterval();
+	    long start, end, slept;
+	    boolean interrupted = false;
+
+	    while(timeToSleep > 0){
+	        start=System.currentTimeMillis();
+	        try{
+	            Thread.sleep(timeToSleep);
+	            break;
+	        }
+	        catch(InterruptedException e){
+
+	            errorLogger.error("ERR sleepforawhile 01 - Thread Interruption " + e.getMessage() );
+	            end=System.currentTimeMillis();
+	            slept=end-start;
+	            timeToSleep-=slept;
+	            interrupted=true;
+	        }
+	    }
+
+	     if(interrupted){
+	       Thread.currentThread().interrupt();
+	    }
+	}
+
+
+	public class GenericExtFilter implements FilenameFilter {
+
+		private String ext;
+
+		public GenericExtFilter(String ext) {
+			this.ext = ext;
+		}
+
+		public boolean accept(File dir, String name) {
+
+			return (name.endsWith("pdf") || name.endsWith("tif"));
+		}
+	}
+
+}

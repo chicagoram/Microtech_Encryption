@@ -1,0 +1,5 @@
+package com.directory.arch;
+
+public interface IFileListener extends IResourceListener {
+
+}

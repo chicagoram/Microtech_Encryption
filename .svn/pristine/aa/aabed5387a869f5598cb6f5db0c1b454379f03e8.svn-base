@@ -1,0 +1,59 @@
+// File:         [DAOFactory.java]
+// Created:      [Dec 16, 2009 creation date]
+// Last Changed: [Dec 16, 2009 date last changed]
+// Author:       [Ram]
+//
+// This code is copyright (c) 2009 Allied Vaughn
+// 
+// History:
+// 
+//
+package com.directory.arch.dataaccess;
+
+
+
+// TODO: Auto-generated Javadoc
+//Abstract class DAO Factory
+/**
+ * A factory for creating DAO objects.
+ */
+public abstract class DAOFactory {
+
+	/** The Constant MYSQL. */
+	public static final int MYSQL = 2;
+
+	// List of DAO types supported by the factory
+	/** The Constant ORACLE. */
+	public static final int HSQL = 2;
+
+	/**
+	 * Gets the dAO factory.
+	 * 
+	 * @param whichFactory
+	 *            the which factory
+	 * 
+	 * @return the dAO factory
+	 */
+	public static DAOFactory getDAOFactory(int whichFactory) {
+
+		switch (whichFactory) {
+		case HSQL:
+			return new HSQLDAOFactory();
+			// case MYSQL :
+			// return new SybaseDAOFactory();
+
+		default:
+			return null;
+		}
+	}
+
+	// There will be a method for each DAO that can be
+	// created. The concrete factories will have to
+	// implement these methods.
+	/**
+	 * Gets the order dao.
+	 * 
+	 * @return the  dao
+	 */
+	//public abstract OrderDAO getOrderDAO();
+}

@@ -1,0 +1,65 @@
+package com.directory.exception;
+
+/*
+ *
+ * @author Ram Narasimhan
+ * 
+ *
+ * Copyright (c) 2003 Boise Office Solutions
+ * 800 W. Bryn Marw Ave, Itasca, IL 60015
+ * All Rights Reserved.
+ *
+ */
+
+import java.io.PrintWriter;
+import org.apache.log4j.Logger;
+
+public class UnrecoverableException extends Exception {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private Throwable baseThrowable = null;
+
+	private static final Logger debugLogger = Logger.getLogger("debuglog");
+	
+
+	public UnrecoverableException(String message, Throwable t) {
+		super(message);
+		baseThrowable = t;
+
+	}
+
+	public UnrecoverableException(String message) {
+
+		super(message);
+		debugLogger.debug(message);
+	}
+
+	public Throwable getRootCause() {
+		return baseThrowable;
+	}
+
+	public String getMessage() {
+		if (baseThrowable == null) {
+			return super.getMessage();
+		} else {
+			return super.getMessage() + "; nested exception is:  \n\t"
+					+ baseThrowable.toString();
+		}
+	}
+
+	public void printStackTrace(PrintWriter s) {
+		super.printStackTrace(s);
+		if (baseThrowable != null) {
+			s.print("\n\t Underlying Throwable stack trace follows : \n\t");
+			baseThrowable.printStackTrace(s);
+		}
+	}
+
+	public void printStackTrace() {
+		this.printStackTrace(System.err);
+	}
+
+}

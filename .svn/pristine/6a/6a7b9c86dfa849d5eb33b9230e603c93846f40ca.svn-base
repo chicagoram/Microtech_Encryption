@@ -1,0 +1,5 @@
+package com.directory.arch;
+
+public abstract class BaseListener {
+
+}

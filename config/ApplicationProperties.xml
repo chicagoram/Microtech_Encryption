@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PropertyConfiguration>
+	<Properties>
+
+		<Property>
+			<name>TRACE</name>
+			<value><![CDATA[ Y]]>
+			</value>
+		</Property>
+		<Property>
+			<name>EMAIL_NOTIFY</name>
+			<value><![CDATA[ Y]]>
+			</value>
+		</Property>
+		<Property>
+			<name>EMAIL_CONFIG_DIR</name>
+			<value><![CDATA[/array2/watch/listener/mail_config_props.txt]]>
+			</value>
+		</Property>
+		<Property>
+			<name>EMAIL_SUBJECT</name>
+			<value> <![CDATA[41056P - Print Listener - Error]]></value>
+		</Property>
+		<Property>
+			<name>HOST_NAME</name>
+			<value> <![CDATA[smtp.googlemail.com]]></value>
+		</Property>
+		<Property>
+			<name>HOST_PORT</name>
+			<value> <![CDATA[587]]></value>
+		</Property>
+		<Property>
+			<name>USER</name>
+			<value> <![CDATA[alliedvaughnits]]></value>
+		</Property>
+		<Property>
+			<name>PASSWORD</name>
+			<value> <![CDATA[26Baba17#]]></value>
+		</Property>
+		<Property>
+			<name>TO_EMAIL_ADDRESSES</name>
+			<value> <![CDATA[ram_1726@yahoo.com,ram@3susa.com]]></value>
+		</Property>
+		<Property>
+			<name>FROM_EMAIL_ADDRESS</name>
+			<value><![CDATA[alliedvaughnits@gmail.com]]></value>
+		</Property>
+		<Property>
+			<name>RECORD_DATA</name>
+			<value><![CDATA[Y]]></value>
+		</Property>
+
+	</Properties>
+</PropertyConfiguration>

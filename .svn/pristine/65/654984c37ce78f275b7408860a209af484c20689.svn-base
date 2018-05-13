@@ -1,0 +1,457 @@
+package com.directory.impl;
+
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.FilenameFilter;
+import java.io.InputStream;
+import java.io.Writer;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.log4j.Logger;
+
+import com.directory.arch.BaseListener;
+import com.directory.arch.IFileListener;
+import com.directory.exception.FileMoveException;
+import com.directory.exception.FileORNetworkNotAvailableException;
+import com.directory.exception.ResourceAddException;
+import com.directory.util.Util;
+import com.directory.util.FindCertainExtension.GenericExtFilter;
+
+public class FileListener extends BaseListener implements IFileListener {
+
+	private static final Logger errorLogger = Logger.getLogger("errorLog");
+	private static final Logger debugLogger = Logger.getLogger("debugLog");
+	private static final Logger txnLogger = Logger.getLogger("transactionLog");
+
+	public void onStart(Object monitoredResource) {
+		// On startup
+		if (monitoredResource instanceof File) {
+			File resource = (File) monitoredResource;
+			if (resource.isDirectory()) {
+
+				debugLogger
+						.debug("Start to monitor the resource........................ "
+								+ resource.getAbsolutePath());
+
+			}
+		}
+	}
+
+	/**
+	 * Connstructor
+	 */
+	public FileListener() {
+		super();
+	}
+
+	public void onStop(Object notMonitoredResource) {
+
+	}
+
+	public void onAdd(Object newResource) throws Exception {
+		if (newResource instanceof File) {
+			File file = (File) newResource;
+			if (file.isFile()) {
+				boolean fileIsReady = false;
+				while (!fileIsReady) {
+					try {
+
+						file.canWrite();
+						fileIsReady = true;
+					} catch (Exception e) {
+
+						errorLogger.error("Failed to add file "
+								+ file.getName());
+						throw new ResourceAddException(Util.ADD_RESOURCE_ERROR,
+								e);
+
+					}
+				}
+
+				Path filepath = Paths.get(file.getAbsolutePath());
+				processFile(filepath, file);
+
+			}
+		}
+	}
+
+	private void processFile(final Path fr, File batchfile) throws Exception {
+
+		String target = null;
+		File sourceFile = null;
+
+		String newConfig = Util.getWatchDir() + File.separator + "folder.cfg";
+		String batchWithOutExt = batchfile.getName().replaceFirst("[.][^.]+$",
+				"");
+
+		try (BufferedReader fs = new BufferedReader(new FileReader(fr.toFile()));) {
+
+			String c;
+			String[] tokens = null;
+			while ((c = fs.readLine()) != null) {
+
+				tokens = c.split(",");
+
+				String fileName = Util.extractFileName(tokens[0]);
+				target = tokens[1] + "\\" + fileName;
+
+				if (checkIfTheContentExists(new File(tokens[0])))
+				{
+					Util.setTotRecords(Util.totRecords+1);
+					
+					if (Util.getTotRecords() == 1){
+						txnLogger.info("Batch in progress : " + batchfile );
+					}
+					File targetFile = new File(target);
+				/*	if (targetFile.exists()) {
+						errorLogger.error("LOC005:- target " + targetFile
+								+ " exists");
+						continue;
+
+					} else {
+						Util.setTotRecords(1);
+					} */
+
+					// check if hot folder is busy before sending
+
+		//			if (hotFolderBusyChk(targetFile.getParent())) {
+					// get cfg file over to hot folder
+
+					String fileNameWithOutExt = new File(tokens[0]).getName()
+							.replaceFirst("[.][^.]+$", "");
+
+					String cfg = fileNameWithOutExt + ".cfg";
+					File hotFolderCfg = null;
+
+					String hotFolderCfgName = "";
+					if (fileNameWithOutExt.contains("SEP")) {
+						hotFolderCfgName = Util.getWatchDir() + File.separator
+								+ cfg;
+						hotFolderCfg = new File(hotFolderCfgName);
+
+					} else {
+						hotFolderCfgName = Util.getWatchDir() + File.separator
+								+ batchWithOutExt + "-" + cfg;
+						hotFolderCfg = new File(hotFolderCfgName);
+						
+					}
+
+					// copy config folder file over to processed folder
+
+					String inprocess = Util.getProcessDest() + File.separator
+							+ hotFolderCfg.getName();
+					sendFileToNewDestination(fr, new File(hotFolderCfgName),
+							new File(inprocess));
+
+					// rename config file to folder.cfg on the same location
+					// (listening folder)
+
+					
+					hotFolderCfg.renameTo(new File(newConfig));
+					
+					// set the filepath to hotfolder path
+
+					Path filepath = Paths.get(newConfig);
+
+					
+					// Delete folder.cfg
+					
+					Files.delete(Paths.get(new File(newConfig).getAbsolutePath()));
+					Util.sleepforawhile();
+					
+					// move folder.cfg file from listening folder to hotfolder)
+
+					moveFiletoNewDestination(filepath.toFile(),
+							Util.getCfgFolder());
+					// Now send Content File
+					if (tokens[0].contains("SEP")) {
+						sendFileToNewDestination(fr, new File(tokens[0]),
+								targetFile);
+						String destFile = Util.getProcessDest()
+								+ File.separator
+								+ new File(tokens[0]).getName();
+						sendFileToNewDestination(fr, new File(tokens[0]),
+								new File(destFile));
+						moveFiletoNewDestination(new File(tokens[0]),
+								Util.getProcessDest());
+						// delete the file
+						// removeSeparator(fr,tokens[0]);
+						txnLogger.info("Separator printing in progress : " + fileNameWithOutExt );
+					} else {
+						sendFileToNewDestination(fr, new File(tokens[0]),
+								targetFile);
+						txnLogger.info("Wrap printing in progress : " + fileNameWithOutExt );
+					}
+					// send corresponding cfg
+
+				} 
+			}
+
+		} catch (Exception e) {
+			errorLogger.error("LOC008:- File processing error "
+					+ ExceptionUtils.getStackTrace(e) + " ");
+			throw e;
+		} finally {
+
+			moveFiletoNewDestination(fr.toFile(), Util.getProcessDest());
+		}
+
+		// moveFiletoNewDestination(new File(newloc), Util.getProcessedDest());
+
+		txnLogger
+				.info("Total Records Processed.............................."
+						+ Util.totRecords);
+		txnLogger.info("\n");
+		txnLogger
+				.info("Processing Ends@.....................................");
+
+		txnLogger.info("\n");
+
+	}
+
+	private static boolean checkIfTheContentExists(File file)
+			throws FileORNetworkNotAvailableException {
+
+		boolean contentVerification = false;
+		int attempts = 0;
+
+		if ((file != null) && (file.canRead())) {
+			return contentVerification;
+		}
+		do {
+			attempts += 1;
+			try {
+				Thread.sleep(Util.gethotfolderBsyChkIntvl());
+				if (attempts > 3) {
+					contentVerification = true;
+					throw new FileORNetworkNotAvailableException(
+							"LOC009:- Source File "
+									+ file.getName()
+									+ " does not exist or Network path not found - 3 attempts failed  "
+									+ file.getName());
+
+				}
+			} catch (Exception e) {
+				contentVerification = true;
+				throw new FileORNetworkNotAvailableException(
+						"LOC010:- Source File "
+								+ file.getName()
+								+ " does not exist or Network path not found - 3 attempts failed  "
+								+ file.getName());
+
+			}
+		} while (contentVerification);
+
+		return contentVerification;
+	}
+
+	private static void sendFileToNewDestination(Path batchName, File fileName,
+			File targetFile) throws Exception {
+
+		InputStream istream = null;
+		File f = null;
+		ReadableByteChannel source = null;
+		WritableByteChannel channel = null;
+		try {
+			// f = new File(fileName);
+			istream = new FileInputStream(fileName);
+
+			channel = new FileOutputStream(targetFile).getChannel();
+
+			source = Channels.newChannel(istream);
+
+			ByteBuffer buffer = ByteBuffer.allocateDirect(102400);
+
+			while (source.read(buffer) != -1) {
+				buffer.flip();
+				while (buffer.hasRemaining()) {
+					channel.write(buffer);
+				}
+				buffer.clear();
+
+			}
+
+		} catch (Exception e) {
+			errorLogger
+					.error("ERR sendFileToNewDestination 01 - Error processing file "
+							+ e.getMessage()
+							+ " File processing error - Batch Name"
+							+ batchName.getFileName());
+			throw e;
+
+		} finally {
+			istream.close();
+			source.close();
+			channel.close();
+			istream = null;
+			source = null;
+			channel = null;
+			f = null;
+			fileName.setWritable(true);
+		}
+	}
+
+	/*
+	private static void removeSeparator(Path batchName, String fileName)
+			throws Exception {
+
+		if (fileName.contains("SEP")) {
+			Util.sleepforawhile();
+			try {
+				Files.delete(Paths.get(new File(fileName).getAbsolutePath()));
+
+			} catch (Exception x) {
+				// File permission problems are caught here.
+				errorLogger.error("LOC00&: Error Deleting file"
+						+ x.getMessage());
+			}
+
+		}
+	}
+*/
+	private String moveFiletoNewDestination(File afile, String dest)
+			throws Exception {
+
+		boolean movecomplete = false;
+		int attempts = 0;
+		Path target = null;
+
+		do {
+
+			try {
+
+				debugLogger.debug("Moving file...................... "
+						+ afile.toString() + " to destination... " + dest);
+
+				String filename = afile.getName().toString();
+				target = FileSystems.getDefault().getPath(dest, filename);
+				Files.move(afile.toPath(), target,
+						StandardCopyOption.REPLACE_EXISTING);
+
+			}
+
+			catch (Exception e) {
+				errorLogger
+						.error("ERR moveFileToNewDestination 01 - error moving file  "
+								+ afile.toString()
+								+ ExceptionUtils.getStackTrace(e)
+								+ " Error Message  " + e.getMessage());
+				attempts += 1;
+				String message = e.getMessage();
+				Thread.sleep(Util.gethotfolderBsyChkIntvl());
+				if (attempts > 5) {
+					movecomplete = true;
+					throw new FileMoveException(
+							"ERR moveFileToNewDestination 01 - error moving file  "
+									+ afile.toString() + " Error Message = "
+									+ message, e);
+
+				}
+			}
+
+		} while (movecomplete);
+
+		return (target != null) ? target.toString() : " ";
+
+	}
+
+	// inner class, generic extension filter
+	private class GenericExtFilter implements FilenameFilter {
+
+		private String ext;
+
+		public GenericExtFilter(String ext) {
+			this.ext = ext;
+		}
+
+		public boolean accept(File dir, String name) {
+
+			return (name.endsWith("pdf") || name.endsWith("tif"));
+		}
+	}
+
+	private boolean hotFolderBusyChk(String folder) {
+
+		boolean hotFolderBusyChk = false;
+		boolean keepwaiting = true;
+		int iteration = 0;
+
+		int i = 0;
+		do {
+
+			try {
+
+				hotFolderBusyChk = checkHotfolder(folder, "ext");
+
+				if (hotFolderBusyChk) {
+					keepwaiting = true;
+				} else {
+					keepwaiting = false;
+					hotFolderBusyChk = true;
+				}
+				if (keepwaiting) {
+					iteration++;
+					if (iteration > Util.getHot_folder_wait_cnt()) {
+						keepwaiting = false;
+						return true;
+					} else {
+						Thread.sleep(Util.gethotfolderBsyChkIntvl());
+					}
+				}
+			} catch (Exception e) {
+
+				keepwaiting = false;
+				errorLogger.error("Timing out ...too long a wait"
+						+ e.getMessage());
+			}
+
+		} while (keepwaiting);
+
+		return hotFolderBusyChk;
+
+	}
+
+	private boolean checkHotfolder(String folder, String ext) {
+
+		boolean filesExistChk = false;
+
+		GenericExtFilter filter = new GenericExtFilter(ext);
+
+		File dir = new File(folder);
+
+		if (dir.isDirectory() == false) {
+
+			return filesExistChk;
+
+		}
+
+		// list out all the file name and filter by the extension
+		String[] list = dir.list(filter);
+
+		if (list == null || list.length == 0) {
+
+			return filesExistChk;
+		} else {
+
+			return !filesExistChk;
+		}
+
+	}
+
+}

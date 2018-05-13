@@ -1,0 +1,77 @@
+package com.directory.exception;
+
+/*
+*
+* @author Ram Narasimhan
+* Created on 2005
+*
+* Copyright (c) 2005 Boise Office Solutions
+* 800 W. Bryn Marw Ave, Itasca, IL 60015
+* All Rights Reserved.
+
+*
+*/
+
+import java.io.PrintWriter;
+import java.net.InetAddress;
+import org.apache.log4j.Logger;
+
+
+
+
+
+public class RecoverableException extends RuntimeException {
+   /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+private Throwable baseThrowable = null;
+   
+   private static final Logger debugLogger = Logger.getLogger("debuglog");
+	private static final Logger errorLogger = Logger.getLogger("errorlog");
+
+   /** @param e */
+   public RecoverableException(String message, Throwable t) {
+       super(message);
+       baseThrowable = t;
+       
+   }
+
+   public RecoverableException(String message) {
+       super(message);
+       debugLogger.debug("Error" + message);
+       
+   }
+   
+
+   public Throwable getRootCause() {
+       return baseThrowable;
+   }
+
+   public String getMessage() {
+       if (baseThrowable == null) {
+           return super.getMessage();
+       } else {
+           return super.getMessage() + "; nested exception is:  \n\t"
+                   + baseThrowable.toString();
+       }
+   }
+
+   public void printStackTrace(PrintWriter s) {
+       super.printStackTrace(s);
+       if (baseThrowable != null) {
+           s.print("\n\t Underlying Throwable stack trace follows : \n\t");
+           baseThrowable.printStackTrace(s);
+       }
+   }
+
+   public void printStackTrace() {
+       this.printStackTrace(System.err);
+   }
+   
+	
+  }
+
+
+
